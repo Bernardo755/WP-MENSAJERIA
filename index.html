@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviador de WhatsApp Semi-Automático</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #128C7E;
+            text-align: center;
+            margin-top: 0;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: inherit;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .note {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #128C7E;
+        }
+        #lista-botones {
+            margin-top: 30px;
+        }
+        .wa-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            transition: background 0.2s;
+        }
+        .wa-btn:hover {
+            background-color: #e9ecef;
+        }
+        .wa-btn span {
+            font-weight: bold;
+            color: #128C7E;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📲 WhatsApp Sender</h1>
+        
+        <label for="contactos">Lista de Contactos (Nombre, Número):</label>
+        <div class="note">Escribe un contacto por línea separado por una coma. <strong>Importante:</strong> El número debe incluir el código de país (ej. 52 para México) sin el signo +.</div>
+        <textarea id="contactos" rows="5" placeholder="Juan Pérez, 525512345678&#10;María López, 525598765432"></textarea>
+
+        <label for="mensaje">Mensaje a enviar:</label>
+        <div class="note">Usa la etiqueta <strong>{nombre}</strong> donde quieras que aparezca el nombre del contacto.</div>
+        <textarea id="mensaje" rows="4" placeholder="¡Hola {nombre}! Te escribo para recordarte nuestra cita de mañana."></textarea>
+
+        <button onclick="generarEnlaces()">Generar Botones de Envío</button>
+
+        <div id="lista-botones">
+            <!-- Aquí aparecerán los botones generados -->
+        </div>
+    </div>
+
+    <script>
+        function generarEnlaces() {
+            const contactosText = document.getElementById('contactos').value.trim();
+            const mensajePlantilla = document.getElementById('mensaje').value.trim();
+            const contenedorBotones = document.getElementById('lista-botones');
+            
+            // Limpiar resultados anteriores
+            contenedorBotones.innerHTML = '';
+
+            if (!contactosText || !mensajePlantilla) {
+                alert('Por favor, llena la lista de contactos y el mensaje.');
+                return;
+            }
+
+            // Separar el texto por líneas
+            const lineas = contactosText.split('\n');
+
+            // Crear un botón por cada línea
+            lineas.forEach(linea => {
+                // Separar nombre y número usando la coma
+                const datos = linea.split(',');
+                
+                if (datos.length >= 2) {
+                    const nombre = datos[0].trim();
+                    // Limpiar el número de espacios, guiones o signos +
+                    const numero = datos[1].trim().replace(/\D/g, ''); 
+
+                    // Reemplazar {nombre} por el nombre real del contacto
+                    const mensajePersonalizado = mensajePlantilla.replace(/{nombre}/g, nombre);
+                    
+                    // Codificar el mensaje para que sea válido en una URL (cambia espacios por %20, etc.)
+                    const mensajeCodificado = encodeURIComponent(mensajePersonalizado);
+
+                    // Crear el enlace wa.me
+                    const url = `https://wa.me/${numero}?text=${mensajeCodificado}`;
+
+                    // Crear el elemento HTML del botón
+                    const enlaceHTML = document.createElement('a');
+                    enlaceHTML.href = url;
+                    enlaceHTML.target = "_blank"; // Abre en una nueva pestaña
+                    enlaceHTML.className = 'wa-btn';
+                    enlaceHTML.innerHTML = `${nombre} (${numero}) <span>➤ Enviar Mensaje</span>`;
+
+                    contenedorBotones.appendChild(enlaceHTML);
+                }
+            });
+
+            if(contenedorBotones.innerHTML === '') {
+                alert('No se pudieron generar los botones. Verifica que los contactos tengan el formato correcto: Nombre, Número');
+            }
+        }
+    </script>
+
+</body>
+</html>

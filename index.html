@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp</title>
+    <title>WhatsApp Sender Pro</title>
     <!-- Librería SheetJS para leer y crear archivos Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -76,7 +76,7 @@
 
         /* Formularios */
         label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
-        textarea, input[type="file"] {
+        textarea, input[type="file"], input[type="number"] {
             width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
             box-sizing: border-box; font-family: inherit;
         }
@@ -131,7 +131,7 @@
 <body>
 
     <div class="container">
-        <h1>📲 WhatsApp</h1>
+        <h1>📲 WhatsApp Sender Pro</h1>
         
         <!-- Configuración de Plataforma -->
         <div class="config-box">
@@ -166,7 +166,7 @@
         <!-- Opción 1: Manual -->
         <div id="tab-manual" class="tab-content active">
             <label for="contactos">Pega desde Excel (Nombre y Número):</label>
-            <div class="note">Puedes copiar las 2 columnas directo de Excel y pegarlas aquí.</div>
+            <div class="note">Puedes copiar las 2 columnas directo de Excel y pegarlas aquí. El sistema lo entenderá.</div>
             <textarea id="contactos" rows="5" placeholder="Juan Pérez&#9;525512345678"></textarea>
 
             <label for="mensaje-manual">Mensaje a enviar:</label>
@@ -182,9 +182,14 @@
         <!-- Opción 2: Excel -->
         <div id="tab-excel" class="tab-content">
             <label for="archivo-excel">Sube tu archivo Excel (.xlsx):</label>
-            <div class="note">Asegúrate de que la <strong>Columna A</strong> sea el Nombre, la <strong>Columna B</strong> el Número y la <strong>Columna C</strong> el Mensaje. Sin encabezados.</div>
             <input type="file" id="archivo-excel" accept=".xlsx, .xls">
+
+            <label for="fila-inicio">¿En qué fila comienzan los datos (ignorando encabezados)?</label>
+            <div class="note">Por ejemplo, si tus títulos están en la fila 1, los datos empiezan en la <strong>fila 2</strong>.</div>
+            <input type="number" id="fila-inicio" value="2" min="1">
             
+            <div class="note" style="margin-top: 10px;">Estructura requerida: <strong>Columna A</strong> (Nombre), <strong>Columna B</strong> (Número), <strong>Columna C</strong> (Mensaje).</div>
+
             <div class="btn-group">
                 <button class="btn-main" onclick="procesarExcel()">Cargar Archivo</button>
                 <button class="btn-clear" onclick="limpiarExcel()">🧹 Limpiar Todo</button>
@@ -223,6 +228,7 @@
 
         function limpiarExcel() {
             document.getElementById('archivo-excel').value = '';
+            document.getElementById('fila-inicio').value = '2';
             resetearResultados();
         }
 
@@ -263,6 +269,8 @@
 
         function procesarExcel() {
             const input = document.getElementById('archivo-excel');
+            const filaInicioInput = parseInt(document.getElementById('fila-inicio').value) || 2;
+            
             if (!input.files[0]) {
                 alert('Por favor selecciona un archivo Excel.'); return;
             }
@@ -276,7 +284,13 @@
                 
                 contactosData = [];
                 
-                filas.forEach(fila => {
+                // Convertimos la fila de Excel (ej. fila 2) al índice de JavaScript (ej. índice 1)
+                const indiceInicio = filaInicioInput - 1;
+                
+                // Cortamos el arreglo para empezar a leer desde la fila seleccionada hacia abajo
+                const filasAProcesar = filas.slice(indiceInicio);
+
+                filasAProcesar.forEach(fila => {
                     if (fila.length >= 2 && fila[0] && fila[1]) {
                         const nombre = String(fila[0]).trim();
                         const numero = String(fila[1]).trim().replace(/\D/g, '');
@@ -286,6 +300,11 @@
                         contactosData.push({ nombre, numero, mensaje, estado: 'Pendiente' });
                     }
                 });
+
+                if (contactosData.length === 0) {
+                    alert('No se encontraron datos a partir de esa fila. Revisa el número de fila ingresado.');
+                    return;
+                }
 
                 renderizarLista();
             };
@@ -297,13 +316,8 @@
             const contenedor = document.getElementById('lista-botones');
             contenedor.innerHTML = '';
 
-            if (contactosData.length === 0) {
-                alert('No se encontraron contactos válidos.'); return;
-            }
-
             document.getElementById('btn-descargar').style.display = 'block';
 
-            // Pasamos el "index" a la función abrirWhatsApp en lugar de la URL fija
             contactosData.forEach((contacto, index) => {
                 const card = document.createElement('div');
                 card.className = `contact-card status-${contacto.estado}`;
@@ -330,19 +344,14 @@
             const contacto = contactosData[index];
             const textoCodificado = encodeURIComponent(contacto.mensaje);
             
-            // Verificamos si el checkbox de escritorio está activado en el momento del clic
             const usarDesktop = document.getElementById('usar-desktop').checked;
             
             let url = "";
             if (usarDesktop) {
-                // Protocolo para abrir la App de Escritorio directamente
                 url = `whatsapp://send?phone=${contacto.numero}&text=${textoCodificado}`;
-                // Para protocolos nativos como whatsapp://, usar _self evita pestañas en blanco infinitas
                 window.open(url, "_self");
             } else {
-                // URL estándar para WhatsApp Web
                 url = `https://web.whatsapp.com/send?phone=${contacto.numero}&text=${textoCodificado}`;
-                // Usamos la misma pestaña reciclada
                 window.open(url, "ventana_whatsapp");
             }
         }

@@ -137,7 +137,7 @@
                     // Reemplazar {nombre} por el nombre real del contacto
                     const mensajePersonalizado = mensajePlantilla.replace(/{nombre}/g, nombre);
                     
-                    // Codificar el mensaje para que sea válido en una URL (cambia espacios por %20, etc.)
+                    // Codificar el mensaje para que sea válido en una URL
                     const mensajeCodificado = encodeURIComponent(mensajePersonalizado);
 
                     // Crear el enlace wa.me
@@ -146,7 +146,10 @@
                     // Crear el elemento HTML del botón
                     const enlaceHTML = document.createElement('a');
                     enlaceHTML.href = url;
-                    enlaceHTML.target = "_blank"; // Abre en una nueva pestaña
+                    
+                    // 👇 AQUÍ ESTÁ EL CAMBIO 👇
+                    enlaceHTML.target = "ventana_whatsapp"; // Esto fuerza a usar siempre la misma pestaña
+                    
                     enlaceHTML.className = 'wa-btn';
                     enlaceHTML.innerHTML = `${nombre} (${numero}) <span>➤ Enviar Mensaje</span>`;
 

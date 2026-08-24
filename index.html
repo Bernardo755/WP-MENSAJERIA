@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA DE MENSAJERIA</title>
+    <title>Multi-Channel Sender Pro</title>
     <!-- Librería SheetJS para leer y crear archivos Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -22,9 +22,30 @@
             max-width: 800px;
             margin: 0 auto;
         }
-        h1 { color: #128C7E; text-align: center; margin-top: 0; }
+        h1 { color: #128C7E; text-align: center; margin-top: 0; transition: color 0.3s; }
         
-        /* Configuración Plataforma */
+        /* Configuración Canal y Plataforma */
+        .channel-box {
+            background-color: #f8f9fa;
+            border: 2px solid #007bff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .channel-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+        .channel-options label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         .config-box {
             background-color: #e1f5fe;
             border-left: 5px solid #03a9f4;
@@ -39,12 +60,12 @@
             display: flex;
             align-items: center;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
         }
         .config-box input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 15px;
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
             cursor: pointer;
         }
 
@@ -59,9 +80,9 @@
             text-align: center;
         }
         .stat-box { flex: 1; }
-        .stat-box h2 { margin: 0; font-size: 24px; color: #128C7E; }
+        .stat-box h2 { margin: 0; font-size: 24px; color: #007bff; }
         .stat-box p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;}
-        .stat-box.success h2 { color: #25D366; }
+        .stat-box.success h2 { color: #28a745; }
         .stat-box.failed h2 { color: #dc3545; }
 
         /* Pestañas */
@@ -70,13 +91,13 @@
             background: none; border: none; padding: 10px 20px; font-size: 16px;
             cursor: pointer; font-weight: bold; color: #666; outline: none;
         }
-        .tab-btn.active { color: #128C7E; border-bottom: 3px solid #128C7E; margin-bottom: -2px; }
+        .tab-btn.active { color: #007bff; border-bottom: 3px solid #007bff; margin-bottom: -2px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         /* Formularios */
         label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
-        textarea, input[type="file"], input[type="number"] {
+        textarea, input[type="file"], input[type="number"], input[type="text"] {
             width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
             box-sizing: border-box; font-family: inherit;
         }
@@ -87,11 +108,11 @@
             display: flex; gap: 10px; margin-top: 20px;
         }
         .btn-main {
-            background-color: #128C7E; color: white; border: none; padding: 12px 20px;
+            background-color: #007bff; color: white; border: none; padding: 12px 20px;
             font-size: 16px; border-radius: 5px; cursor: pointer; flex: 2;
             font-weight: bold; transition: 0.2s;
         }
-        .btn-main:hover { background-color: #075E54; }
+        .btn-main:hover { background-color: #0056b3; }
         
         .btn-clear {
             background-color: #dc3545; color: white; border: none; padding: 12px 20px;
@@ -110,7 +131,7 @@
             background-color: #fff; border: 1px solid #ddd; border-left: 5px solid #ccc;
             padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .contact-card.status-Enviado { border-left-color: #25D366; background-color: #f0fff4; }
+        .contact-card.status-Enviado { border-left-color: #28a745; background-color: #f0fff4; }
         .contact-card.status-Fallido { border-left-color: #dc3545; background-color: #fff0f0; }
         
         .contact-info { flex: 1; padding-right: 15px; }
@@ -122,8 +143,8 @@
             padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer;
             font-weight: bold; color: white; transition: 0.2s;
         }
-        .btn-send { background-color: #128C7E; }
-        .btn-success { background-color: #25D366; }
+        .btn-send { background-color: #007bff; }
+        .btn-success { background-color: #28a745; }
         .btn-fail { background-color: #dc3545; }
         .btn-action:hover { opacity: 0.8; }
     </style>
@@ -131,13 +152,28 @@
 <body>
 
     <div class="container">
-        <h1>📲 WhatsApp</h1>
+        <h1 id="titulo-app">📨 Multi-Channel Sender Pro</h1>
+
+        <!-- Selección de Canal -->
+        <div class="channel-box">
+            <strong>¿Qué tipo de envío realizarás?</strong>
+            <div class="channel-options">
+                <label>
+                    <input type="radio" name="tipo_canal" value="whatsapp" checked onchange="actualizarInterfazCanal()"> 
+                    📲 WhatsApp
+                </label>
+                <label>
+                    <input type="radio" name="tipo_canal" value="correo" onchange="actualizarInterfazCanal()"> 
+                    📧 Correo Electrónico
+                </label>
+            </div>
+        </div>
         
-        <!-- Configuración de Plataforma -->
+        <!-- Configuración de Plataforma / App -->
         <div class="config-box">
             <label>
                 <input type="checkbox" id="usar-desktop"> 
-                Activar para usar la App de Escritorio de WhatsApp (Si lo dejas vacío, usará WhatsApp Web en el navegador)
+                <span id="label-desktop">Activar para usar la App de Escritorio de WhatsApp</span>
             </label>
         </div>
 
@@ -145,7 +181,7 @@
         <div class="dashboard">
             <div class="stat-box">
                 <h2 id="stat-total">0</h2>
-                <p>Total Contactos</p>
+                <p>Total Registros</p>
             </div>
             <div class="stat-box success">
                 <h2 id="stat-success">0</h2>
@@ -165,11 +201,17 @@
 
         <!-- Opción 1: Manual -->
         <div id="tab-manual" class="tab-content active">
-            <label for="contactos">Pega desde Excel (Nombre y Número):</label>
-            <div class="note">Puedes copiar las 2 columnas directo de Excel y pegarlas aquí.</div>
-            <textarea id="contactos" rows="5" placeholder="Juan Pérez&#9;525512345678"></textarea>
+            <label id="lbl-contactos-manual" for="contactos">Pega desde Excel (Nombre y Número):</label>
+            <div class="note" id="note-manual">Puedes copiar las 2 columnas directo de Excel y pegarlas aquí.</div>
+            <textarea id="contactos" rows="4" placeholder="Juan Pérez&#9;525512345678"></textarea>
 
-            <label for="mensaje-manual">Mensaje a enviar:</label>
+            <!-- Campo Asunto (Solo se muestra para Correo) -->
+            <div id="wrapper-asunto-manual" style="display: none;">
+                <label for="asunto-manual">Asunto del Correo:</label>
+                <input type="text" id="asunto-manual" placeholder="Ejemplo: Información importante para {nombre}">
+            </div>
+
+            <label for="mensaje-manual">Mensaje / Cuerpo:</label>
             <div class="note">Usa <strong>{nombre}</strong> para personalizar automáticamente.</div>
             <textarea id="mensaje-manual" rows="3" placeholder="Hola {nombre}, este es un mensaje de prueba."></textarea>
             
@@ -188,11 +230,10 @@
             <div class="note">Por ejemplo, si tus títulos están en la fila 1, tus datos empiezan en la <strong>fila 2</strong>.</div>
             <input type="number" id="fila-inicio" value="2" min="1">
             
-            <div class="note" style="margin-top: 10px;">
-                Estructura del Excel: 
-                <br>• <strong>Columna A:</strong> Nombre
-                <br>• <strong>Columna B:</strong> Número telefónico
-                <br>• <strong>Columna C:</strong> Mensaje (Usa <strong>{nombre}</strong> donde quieras que se inserte el nombre automáticamente).
+            <div class="note" style="margin-top: 10px;" id="estructura-excel-note">
+                • <strong>Columna A:</strong> Nombre<br>
+                • <strong>Columna B:</strong> Teléfono<br>
+                • <strong>Columna C:</strong> Mensaje (Usa {nombre} como comodín)
             </div>
 
             <div class="btn-group">
@@ -214,7 +255,7 @@
         let contactosData = [];
         let modoActual = 'manual';
 
-        // Cambiar entre pestañas
+        // Cambiar entre Pestañas
         function cambiarPestana(modo) {
             modoActual = modo;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -224,10 +265,51 @@
             document.getElementById('tab-' + modo).classList.add('active');
         }
 
-        // --- FUNCIONES PARA LIMPIAR DATOS ---
+        // Cambiar Interfaz dinámicamente según el Canal (WhatsApp o Correo)
+        function actualizarInterfazCanal() {
+            const canal = document.querySelector('input[name="tipo_canal"]:checked').value;
+            const labelDesktop = document.getElementById('label-desktop');
+            const wrapperAsunto = document.getElementById('wrapper-asunto-manual');
+            const lblContactos = document.getElementById('lbl-contactos-manual');
+            const noteManual = document.getElementById('note-manual');
+            const txtContactos = document.getElementById('contactos');
+            const estructuraNote = document.getElementById('estructura-excel-note');
+
+            resetearResultados();
+
+            if (canal === 'whatsapp') {
+                labelDesktop.innerText = "Activar para usar la App de Escritorio de WhatsApp (Si no, usará WhatsApp Web)";
+                wrapperAsunto.style.display = "none";
+                lblContactos.innerText = "Pega desde Excel (Nombre y Número):";
+                noteManual.innerText = "Puedes copiar las 2 columnas directo de Excel y pegarlas aquí.";
+                txtContactos.placeholder = "Juan Pérez\t525512345678";
+                
+                estructuraNote.innerHTML = `
+                    • <strong>Columna A:</strong> Nombre<br>
+                    • <strong>Columna B:</strong> Teléfono con clave de país<br>
+                    • <strong>Columna C:</strong> Mensaje (Usa {nombre} como comodín)
+                `;
+            } else { // Correo
+                labelDesktop.innerText = "Activar para usar tu cliente de correo de Escritorio (Outlook, Thunderbird, Mail) — Si lo dejas vacío, usará Gmail Web";
+                wrapperAsunto.style.display = "block";
+                lblContactos.innerText = "Pega desde Excel (Nombre y Correo):";
+                noteManual.innerText = "Puedes copiar las 2 columnas directo de Excel y pegarlas aquí.";
+                txtContactos.placeholder = "Juan Pérez\tjuan@ejemplo.com";
+
+                estructuraNote.innerHTML = `
+                    • <strong>Columna A:</strong> Nombre<br>
+                    • <strong>Columna B:</strong> Correo Electrónico<br>
+                    • <strong>Columna C:</strong> Mensaje / Cuerpo<br>
+                    • <strong>Columna D:</strong> (Opcional) Asunto del correo
+                `;
+            }
+        }
+
+        // Limpiar Formularios
         function limpiarManual() {
             document.getElementById('contactos').value = '';
             document.getElementById('mensaje-manual').value = '';
+            document.getElementById('asunto-manual').value = '';
             resetearResultados();
         }
 
@@ -246,11 +328,19 @@
 
         // --- PROCESAMIENTO DE DATOS ---
         function procesarManual() {
+            const canal = document.querySelector('input[name="tipo_canal"]:checked').value;
             const contactosText = document.getElementById('contactos').value.trim();
             const mensajePlantilla = document.getElementById('mensaje-manual').value.trim();
-            
+            const asuntoPlantilla = document.getElementById('asunto-manual').value.trim();
+
             if (!contactosText || !mensajePlantilla) {
-                alert('Llena los contactos y el mensaje.'); return;
+                alert('Por favor completa los contactos y el cuerpo del mensaje.'); 
+                return;
+            }
+
+            if (canal === 'correo' && !asuntoPlantilla) {
+                alert('Por favor ingresa el Asunto del correo.');
+                return;
             }
 
             contactosData = [];
@@ -262,10 +352,24 @@
                 
                 if (datos.length >= 2) {
                     const nombre = datos[0].trim();
-                    const numero = datos[1].trim().replace(/\D/g, ''); 
+                    let destino = datos[1].trim();
+
+                    if (canal === 'whatsapp') {
+                        destino = destino.replace(/\D/g, ''); // Limpiar caracteres no numéricos
+                    }
+
                     let mensajeFinal = mensajePlantilla.replace(/{nombre}/gi, nombre);
-                    
-                    contactosData.push({ nombre, numero, mensaje: mensajeFinal, estado: 'Pendiente' });
+                    let asuntoFinal = asuntoPlantilla.replace(/{nombre}/gi, nombre);
+
+                    if (nombre && destino) {
+                        contactosData.push({ 
+                            nombre, 
+                            destino, 
+                            mensaje: mensajeFinal, 
+                            asunto: asuntoFinal, 
+                            estado: 'Pendiente' 
+                        });
+                    }
                 }
             });
 
@@ -273,6 +377,7 @@
         }
 
         function procesarExcel() {
+            const canal = document.querySelector('input[name="tipo_canal"]:checked').value;
             const input = document.getElementById('archivo-excel');
             const filaInicioInput = parseInt(document.getElementById('fila-inicio').value) || 2;
             
@@ -289,46 +394,53 @@
                     const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
                     
                     contactosData = [];
-                    
-                    // Convertimos la fila de Excel (ej. fila 2) al índice de JavaScript (ej. índice 1)
                     const indiceInicio = filaInicioInput - 1;
                     const filasAProcesar = filas.slice(indiceInicio);
 
                     filasAProcesar.forEach(fila => {
-                        // Verificamos que la fila tenga contenido y al menos nombre y número
                         if (fila && fila.length >= 2 && fila[0] !== undefined && fila[1] !== undefined) {
                             const nombre = String(fila[0]).trim();
-                            const numero = String(fila[1]).trim().replace(/\D/g, '');
-                            
-                            // Extraemos el mensaje personalizado de la columna C (fila[2])
-                            let mensajePlantilla = fila[2] ? String(fila[2]).trim() : "Hola {nombre}, mensaje por defecto.";
-                            
-                            // Reemplazamos {nombre} automáticamente (sin importar si está en mayúsculas o minúsculas)
+                            let destino = String(fila[1]).trim();
+
+                            if (canal === 'whatsapp') {
+                                destino = destino.replace(/\D/g, '');
+                            }
+
+                            let mensajePlantilla = fila[2] ? String(fila[2]).trim() : "Hola {nombre}";
                             let mensajeFinal = mensajePlantilla.replace(/{nombre}/gi, nombre);
 
-                            if (nombre && numero) {
-                                contactosData.push({ nombre, numero, mensaje: mensajeFinal, estado: 'Pendiente' });
+                            let asuntoFinal = fila[3] ? String(fila[3]).trim().replace(/{nombre}/gi, nombre) : "Mensaje para " + nombre;
+
+                            if (nombre && destino) {
+                                contactosData.push({ 
+                                    nombre, 
+                                    destino, 
+                                    mensaje: mensajeFinal, 
+                                    asunto: asuntoFinal, 
+                                    estado: 'Pendiente' 
+                                });
                             }
                         }
                     });
 
                     if (contactosData.length === 0) {
-                        alert('No se pudieron extraer contactos. Revisa que el número de fila inicial sea correcto y que las columnas A y B tengan datos.');
+                        alert('No se encontraron registros válidos.');
                         return;
                     }
 
                     renderizarLista();
                 } catch (error) {
                     console.error(error);
-                    alert('Ocurrió un error al procesar el archivo Excel. Verifica que el formato sea correcto.');
+                    alert('Error al procesar el archivo Excel. Asegúrate de que el formato sea correcto.');
                 }
             };
             reader.readAsArrayBuffer(input.files[0]);
         }
 
-        // --- RENDERIZADO Y LÓGICA DE WHATSAPP ---
+        // --- RENDERIZADO Y ENVÍOS ---
         function renderizarLista() {
             const contenedor = document.getElementById('lista-botones');
+            const canal = document.querySelector('input[name="tipo_canal"]:checked').value;
             contenedor.innerHTML = '';
 
             document.getElementById('btn-descargar').style.display = 'block';
@@ -337,14 +449,18 @@
                 const card = document.createElement('div');
                 card.className = `contact-card status-${contacto.estado}`;
                 
+                const detalleDestino = canal === 'whatsapp' ? `Tel: ${contacto.destino}` : `Email: ${contacto.destino}`;
+                const asuntoHtml = canal === 'correo' ? `<p><strong>Asunto:</strong> ${contacto.asunto}</p>` : '';
+
                 card.innerHTML = `
                     <div class="contact-info">
-                        <h4>${contacto.nombre} (${contacto.numero})</h4>
+                        <h4>${contacto.nombre} (${detalleDestino})</h4>
+                        ${asuntoHtml}
                         <p>${contacto.mensaje}</p>
                         <small>Estado: <strong>${contacto.estado}</strong></small>
                     </div>
                     <div class="contact-actions">
-                        <button class="btn-action btn-send" onclick="abrirWhatsApp(${index})">➤ Enviar</button>
+                        <button class="btn-action btn-send" onclick="ejecutarEnvio(${index})">➤ Enviar</button>
                         <button class="btn-action btn-success" onclick="marcarEstado(${index}, 'Enviado')">✅</button>
                         <button class="btn-action btn-fail" onclick="marcarEstado(${index}, 'Fallido')">❌</button>
                     </div>
@@ -355,19 +471,35 @@
             actualizarEstadisticas();
         }
 
-        function abrirWhatsApp(index) {
+        function ejecutarEnvio(index) {
             const contacto = contactosData[index];
-            const textoCodificado = encodeURIComponent(contacto.mensaje);
-            
+            const canal = document.querySelector('input[name="tipo_canal"]:checked').value;
             const usarDesktop = document.getElementById('usar-desktop').checked;
-            
-            let url = "";
-            if (usarDesktop) {
-                url = `whatsapp://send?phone=${contacto.numero}&text=${textoCodificado}`;
-                window.open(url, "_self");
-            } else {
-                url = `https://web.whatsapp.com/send?phone=${contacto.numero}&text=${textoCodificado}`;
-                window.open(url, "ventana_whatsapp");
+
+            const textoCodificado = encodeURIComponent(contacto.mensaje);
+
+            if (canal === 'whatsapp') {
+                let url = "";
+                if (usarDesktop) {
+                    url = `whatsapp://send?phone=${contacto.destino}&text=${textoCodificado}`;
+                    window.open(url, "_self");
+                } else {
+                    url = `https://web.whatsapp.com/send?phone=${contacto.destino}&text=${textoCodificado}`;
+                    window.open(url, "ventana_envio");
+                }
+            } else { // Correo Electrónico
+                const asuntoCodificado = encodeURIComponent(contacto.asunto || "Mensaje");
+                let url = "";
+                
+                if (usarDesktop) {
+                    // Abre el programa predeterminado (Outlook, Thunderbird, Mail de Windows/Mac)
+                    url = `mailto:${contacto.destino}?subject=${asuntoCodificado}&body=${textoCodificado}`;
+                    window.open(url, "_self");
+                } else {
+                    // Abre la pestaña de redacción de Gmail Web
+                    url = `https://mail.google.com/mail/?view=cm&fs=1&to=${contacto.destino}&su=${asuntoCodificado}&body=${textoCodificado}`;
+                    window.open(url, "ventana_envio");
+                }
             }
         }
 
@@ -390,8 +522,11 @@
             const worksheet = XLSX.utils.json_to_sheet(contactosData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-            XLSX.writeFile(workbook, "Reporte_Envios_WhatsApp.xlsx");
+            XLSX.writeFile(workbook, "Reporte_Envios.xlsx");
         }
+
+        // Inicializar etiquetas correctas al cargar
+        actualizarInterfazCanal();
     </script>
 </body>
 </html>

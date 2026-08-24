@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enviador de WhatsApp Semi-Automático</title>
+    <title>WhatsApp Sender Pro</title>
+    <!-- Librería SheetJS para leer y crear archivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,149 +13,296 @@
             color: #333;
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
         }
         .container {
             background-color: white;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-width: 600px;
-            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
         }
-        h1 {
-            color: #128C7E;
-            text-align: center;
-            margin-top: 0;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-        }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-family: inherit;
-            box-sizing: border-box;
-            resize: vertical;
-        }
-        .note {
-            font-size: 0.85em;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #25D366;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        button:hover {
-            background-color: #128C7E;
-        }
-        #lista-botones {
-            margin-top: 30px;
-        }
-        .wa-btn {
+        h1 { color: #128C7E; text-align: center; margin-top: 0; }
+        
+        /* Panel de Estadísticas */
+        .dashboard {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            text-decoration: none;
-            color: #333;
-            transition: background 0.2s;
-            cursor: pointer;
-        }
-        .wa-btn:hover {
             background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .wa-btn span {
-            font-weight: bold;
-            color: #128C7E;
+        .stat-box { flex: 1; }
+        .stat-box h2 { margin: 0; font-size: 24px; color: #128C7E; }
+        .stat-box p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;}
+        .stat-box.success h2 { color: #25D366; }
+        .stat-box.failed h2 { color: #dc3545; }
+
+        /* Pestañas */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab-btn {
+            background: none; border: none; padding: 10px 20px; font-size: 16px;
+            cursor: pointer; font-weight: bold; color: #666; outline: none;
         }
+        .tab-btn.active { color: #128C7E; border-bottom: 3px solid #128C7E; margin-bottom: -2px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Formularios */
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        textarea, input[type="file"] {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+            box-sizing: border-box; font-family: inherit;
+        }
+        .note { font-size: 0.85em; color: #666; margin-bottom: 10px; }
+        
+        /* Botones Principales */
+        .btn-main {
+            background-color: #128C7E; color: white; border: none; padding: 12px 20px;
+            font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%;
+            margin-top: 20px; font-weight: bold;
+        }
+        .btn-main:hover { background-color: #075E54; }
+        .btn-export { background-color: #f59f00; margin-top: 20px; display: none; }
+        .btn-export:hover { background-color: #e67e22; }
+
+        /* Lista de Contactos */
+        #lista-botones { margin-top: 30px; }
+        .contact-card {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #fff; border: 1px solid #ddd; border-left: 5px solid #ccc;
+            padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .contact-card.status-Enviado { border-left-color: #25D366; background-color: #f0fff4; }
+        .contact-card.status-Fallido { border-left-color: #dc3545; background-color: #fff0f0; }
+        
+        .contact-info { flex: 1; }
+        .contact-info h4 { margin: 0 0 5px 0; color: #333; }
+        .contact-info p { margin: 0; font-size: 0.9em; color: #666; }
+        
+        .contact-actions { display: flex; gap: 8px; }
+        .btn-action {
+            padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer;
+            font-weight: bold; color: white; transition: 0.2s;
+        }
+        .btn-send { background-color: #128C7E; }
+        .btn-success { background-color: #25D366; }
+        .btn-fail { background-color: #dc3545; }
+        .btn-action:hover { opacity: 0.8; }
+        .btn-action:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>📲 WhatsApp Sender</h1>
+        <h1>📲 WhatsApp Sender Pro</h1>
         
-        <label for="contactos">Lista de Contactos (Nombre, Número):</label>
-        <div class="note">Escribe un contacto por línea separado por una coma. <strong>Importante:</strong> El número debe incluir el código de país (ej. 52 para México).</div>
-        <textarea id="contactos" rows="5" placeholder="Juan Pérez, 525512345678&#10;María López, 525598765432"></textarea>
-
-        <label for="mensaje">Mensaje a enviar:</label>
-        <div class="note">Usa la etiqueta <strong>{nombre}</strong> donde quieras que aparezca el nombre del contacto.</div>
-        <textarea id="mensaje" rows="4" placeholder="¡Hola {nombre}! Te escribo para recordarte nuestra cita de mañana."></textarea>
-
-        <button onclick="generarEnlaces()">Generar Botones de Envío</button>
-
-        <div id="lista-botones">
-            <!-- Aquí aparecerán los botones generados -->
+        <!-- Panel de Estadísticas -->
+        <div class="dashboard">
+            <div class="stat-box">
+                <h2 id="stat-total">0</h2>
+                <p>Total Contactos</p>
+            </div>
+            <div class="stat-box success">
+                <h2 id="stat-success">0</h2>
+                <p>Exitosos</p>
+            </div>
+            <div class="stat-box failed">
+                <h2 id="stat-failed">0</h2>
+                <p>No Exitosos</p>
+            </div>
         </div>
+
+        <!-- Pestañas -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarPestana('manual')">Copiar y Pegar</button>
+            <button class="tab-btn" onclick="cambiarPestana('excel')">Subir Archivo Excel</button>
+        </div>
+
+        <!-- Opción 1: Manual -->
+        <div id="tab-manual" class="tab-content active">
+            <label for="contactos">Pega desde Excel (Nombre y Número):</label>
+            <div class="note">Puedes copiar las 2 columnas directo de Excel y pegarlas aquí. El sistema lo entenderá.</div>
+            <textarea id="contactos" rows="5" placeholder="Juan Pérez&#9;525512345678"></textarea>
+
+            <label for="mensaje-manual">Mensaje a enviar:</label>
+            <div class="note">Usa <strong>{nombre}</strong> para personalizar.</div>
+            <textarea id="mensaje-manual" rows="3" placeholder="Hola {nombre}, este es un mensaje de prueba."></textarea>
+            
+            <button class="btn-main" onclick="procesarManual()">Generar Lista</button>
+        </div>
+
+        <!-- Opción 2: Excel -->
+        <div id="tab-excel" class="tab-content">
+            <label for="archivo-excel">Sube tu archivo Excel (.xlsx):</label>
+            <div class="note">Asegúrate de que la <strong>Columna A</strong> sea el Nombre, la <strong>Columna B</strong> el Número y la <strong>Columna C</strong> el Mensaje. Sin encabezados (títulos).</div>
+            <input type="file" id="archivo-excel" accept=".xlsx, .xls">
+            
+            <button class="btn-main" onclick="procesarExcel()">Cargar Archivo</button>
+        </div>
+
+        <hr style="margin-top: 30px; border: 0; border-top: 1px solid #ddd;">
+
+        <!-- Área de Resultados -->
+        <button id="btn-descargar" class="btn-main btn-export" onclick="descargarReporte()">📥 Descargar Reporte en Excel</button>
+        <div id="lista-botones"></div>
+
     </div>
 
     <script>
-        function generarEnlaces() {
-            const contactosText = document.getElementById('contactos').value.trim();
-            const mensajePlantilla = document.getElementById('mensaje').value.trim();
-            const contenedorBotones = document.getElementById('lista-botones');
-            
-            contenedorBotones.innerHTML = '';
+        // Variables globales
+        let contactosData = [];
+        let modoActual = 'manual';
 
+        // Cambiar entre pestañas
+        function cambiarPestana(modo) {
+            modoActual = modo;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + modo).classList.add('active');
+        }
+
+        // Procesar Copiar/Pegar
+        function procesarManual() {
+            const contactosText = document.getElementById('contactos').value.trim();
+            const mensajePlantilla = document.getElementById('mensaje-manual').value.trim();
+            
             if (!contactosText || !mensajePlantilla) {
-                alert('Por favor, llena la lista de contactos y el mensaje.');
-                return;
+                alert('Llena los contactos y el mensaje.'); return;
             }
 
+            contactosData = [];
             const lineas = contactosText.split('\n');
 
             lineas.forEach(linea => {
-                const datos = linea.split(',');
+                if (linea.trim() === '') return;
+                
+                // Si el usuario copia de Excel, las columnas se separan por tabulador (\t), sino usamos coma (,)
+                let datos = linea.includes('\t') ? linea.split('\t') : linea.split(',');
                 
                 if (datos.length >= 2) {
                     const nombre = datos[0].trim();
                     const numero = datos[1].trim().replace(/\D/g, ''); 
-
-                    const mensajePersonalizado = mensajePlantilla.replace(/{nombre}/g, nombre);
-                    const mensajeCodificado = encodeURIComponent(mensajePersonalizado);
-
-                    // 👇 CAMBIO CLAVE: Usar la URL directa de WhatsApp Web en lugar de wa.me 👇
-                    const url = `https://web.whatsapp.com/send?phone=${numero}&text=${mensajeCodificado}`;
-
-                    // Usamos un botón normal que ejecute window.open para forzar el reciclaje de la pestaña
-                    const botonHTML = document.createElement('div');
-                    botonHTML.className = 'wa-btn';
-                    botonHTML.innerHTML = `${nombre} (${numero}) <span>➤ Enviar Mensaje</span>`;
+                    let mensajeFinal = mensajePlantilla.replace(/{nombre}/g, nombre);
                     
-                    botonHTML.onclick = function() {
-                        window.open(url, "ventana_whatsapp");
-                    };
-
-                    contenedorBotones.appendChild(botonHTML);
+                    contactosData.push({ nombre, numero, mensaje: mensajeFinal, estado: 'Pendiente' });
                 }
             });
 
-            if(contenedorBotones.innerHTML === '') {
-                alert('No se pudieron generar los botones. Verifica el formato: Nombre, Número');
+            renderizarLista();
+        }
+
+        // Procesar Archivo Excel
+        function procesarExcel() {
+            const input = document.getElementById('archivo-excel');
+            if (!input.files[0]) {
+                alert('Por favor selecciona un archivo Excel.'); return;
             }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
+                
+                // Convertir la hoja a formato de arreglo de arreglos
+                const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
+                
+                contactosData = [];
+                
+                filas.forEach(fila => {
+                    // Ignorar filas vacías
+                    if (fila.length >= 2 && fila[0] && fila[1]) {
+                        const nombre = String(fila[0]).trim();
+                        const numero = String(fila[1]).trim().replace(/\D/g, '');
+                        // Si hay columna C (fila[2]), la usa como mensaje, si no, lo deja vacío o puedes agregar un respaldo.
+                        let mensaje = fila[2] ? String(fila[2]).trim() : "Mensaje no definido en Columna C";
+                        
+                        // Opcional: Reemplazar {nombre} si también lo usaron en la columna C
+                        mensaje = mensaje.replace(/{nombre}/g, nombre);
+
+                        contactosData.push({ nombre, numero, mensaje, estado: 'Pendiente' });
+                    }
+                });
+
+                renderizarLista();
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+        }
+
+        // Mostrar la lista en pantalla
+        function renderizarLista() {
+            const contenedor = document.getElementById('lista-botones');
+            contenedor.innerHTML = '';
+
+            if (contactosData.length === 0) {
+                alert('No se encontraron contactos válidos.'); return;
+            }
+
+            // Mostrar el botón de exportar
+            document.getElementById('btn-descargar').style.display = 'block';
+
+            contactosData.forEach((contacto, index) => {
+                const url = `https://web.whatsapp.com/send?phone=${contacto.numero}&text=${encodeURIComponent(contacto.mensaje)}`;
+
+                const card = document.createElement('div');
+                card.className = `contact-card status-${contacto.estado}`;
+                
+                card.innerHTML = `
+                    <div class="contact-info">
+                        <h4>${contacto.nombre} (${contacto.numero})</h4>
+                        <p>${contacto.mensaje}</p>
+                        <small>Estado: <strong>${contacto.estado}</strong></small>
+                    </div>
+                    <div class="contact-actions">
+                        <button class="btn-action btn-send" onclick="abrirWhatsApp('${url}')">➤ Enviar</button>
+                        <button class="btn-action btn-success" onclick="marcarEstado(${index}, 'Enviado')">✅</button>
+                        <button class="btn-action btn-fail" onclick="marcarEstado(${index}, 'Fallido')">❌</button>
+                    </div>
+                `;
+                contenedor.appendChild(card);
+            });
+
+            actualizarEstadisticas();
+        }
+
+        // Abre WhatsApp Web (Reciclando la pestaña)
+        function abrirWhatsApp(url) {
+            window.open(url, "ventana_whatsapp");
+        }
+
+        // Actualiza el estado (Éxito / Fallido)
+        function marcarEstado(index, nuevoEstado) {
+            contactosData[index].estado = nuevoEstado;
+            renderizarLista(); // Vuelve a dibujar para actualizar colores
+        }
+
+        // Actualiza los números del Dashboard
+        function actualizarEstadisticas() {
+            const total = contactosData.length;
+            const exitosos = contactosData.filter(c => c.estado === 'Enviado').length;
+            const fallidos = contactosData.filter(c => c.estado === 'Fallido').length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-success').innerText = exitosos;
+            document.getElementById('stat-failed').innerText = fallidos;
+        }
+
+        // Descargar los resultados en un nuevo Excel
+        function descargarReporte() {
+            // Creamos una hoja de trabajo a partir de nuestros datos
+            const worksheet = XLSX.utils.json_to_sheet(contactosData);
+            // Creamos un libro de Excel
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
+            
+            // Generamos el archivo y lo descargamos
+            XLSX.writeFile(workbook, "Reporte_Envios_WhatsApp.xlsx");
         }
     </script>
-
 </body>
 </html>

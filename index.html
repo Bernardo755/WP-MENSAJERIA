@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Mensajeria</title>
+    <title>SISTEMA DE MENSAJERIA</title>
     <!-- Librería SheetJS para leer y crear archivos Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -131,7 +131,7 @@
 <body>
 
     <div class="container">
-        <h1>📲 WhatsApp Mensajeria</h1>
+        <h1>📲 WhatsApp</h1>
         
         <!-- Configuración de Plataforma -->
         <div class="config-box">
@@ -170,7 +170,7 @@
             <textarea id="contactos" rows="5" placeholder="Juan Pérez&#9;525512345678"></textarea>
 
             <label for="mensaje-manual">Mensaje a enviar:</label>
-            <div class="note">Usa <strong>{nombre}</strong> para personalizar.</div>
+            <div class="note">Usa <strong>{nombre}</strong> para personalizar automáticamente.</div>
             <textarea id="mensaje-manual" rows="3" placeholder="Hola {nombre}, este es un mensaje de prueba."></textarea>
             
             <div class="btn-group">
@@ -184,11 +184,16 @@
             <label for="archivo-excel">Sube tu archivo Excel (.xlsx):</label>
             <input type="file" id="archivo-excel" accept=".xlsx, .xls">
 
-            <label for="fila-inicio">¿En qué fila comienzan los datos (ignorando encabezados)?</label>
-            <div class="note">Por ejemplo, si tus títulos están en la fila 1, los datos empiezan en la <strong>fila 2</strong>.</div>
+            <label for="fila-inicio">¿En qué fila comienzan tus datos (ignorando encabezados)?</label>
+            <div class="note">Por ejemplo, si tus títulos están en la fila 1, tus datos empiezan en la <strong>fila 2</strong>.</div>
             <input type="number" id="fila-inicio" value="2" min="1">
             
-            <div class="note" style="margin-top: 10px;">Estructura requerida: <strong>Columna A</strong> (Nombre), <strong>Columna B</strong> (Número), <strong>Columna C</strong> (Mensaje).</div>
+            <div class="note" style="margin-top: 10px;">
+                Estructura del Excel: 
+                <br>• <strong>Columna A:</strong> Nombre
+                <br>• <strong>Columna B:</strong> Número telefónico
+                <br>• <strong>Columna C:</strong> Mensaje (Usa <strong>{nombre}</strong> donde quieras que se inserte el nombre automáticamente).
+            </div>
 
             <div class="btn-group">
                 <button class="btn-main" onclick="procesarExcel()">Cargar Archivo</button>
@@ -258,7 +263,7 @@
                 if (datos.length >= 2) {
                     const nombre = datos[0].trim();
                     const numero = datos[1].trim().replace(/\D/g, ''); 
-                    let mensajeFinal = mensajePlantilla.replace(/{nombre}/g, nombre);
+                    let mensajeFinal = mensajePlantilla.replace(/{nombre}/gi, nombre);
                     
                     contactosData.push({ nombre, numero, mensaje: mensajeFinal, estado: 'Pendiente' });
                 }
@@ -277,36 +282,46 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
-                const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
-                
-                contactosData = [];
-                
-                // Convertimos la fila de Excel (ej. fila 2) al índice de JavaScript (ej. índice 1)
-                const indiceInicio = filaInicioInput - 1;
-                
-                // Cortamos el arreglo para empezar a leer desde la fila seleccionada hacia abajo
-                const filasAProcesar = filas.slice(indiceInicio);
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
+                    const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
+                    
+                    contactosData = [];
+                    
+                    // Convertimos la fila de Excel (ej. fila 2) al índice de JavaScript (ej. índice 1)
+                    const indiceInicio = filaInicioInput - 1;
+                    const filasAProcesar = filas.slice(indiceInicio);
 
-                filasAProcesar.forEach(fila => {
-                    if (fila.length >= 2 && fila[0] && fila[1]) {
-                        const nombre = String(fila[0]).trim();
-                        const numero = String(fila[1]).trim().replace(/\D/g, '');
-                        let mensaje = fila[2] ? String(fila[2]).trim() : "Mensaje no definido";
-                        mensaje = mensaje.replace(/{nombre}/g, nombre);
+                    filasAProcesar.forEach(fila => {
+                        // Verificamos que la fila tenga contenido y al menos nombre y número
+                        if (fila && fila.length >= 2 && fila[0] !== undefined && fila[1] !== undefined) {
+                            const nombre = String(fila[0]).trim();
+                            const numero = String(fila[1]).trim().replace(/\D/g, '');
+                            
+                            // Extraemos el mensaje personalizado de la columna C (fila[2])
+                            let mensajePlantilla = fila[2] ? String(fila[2]).trim() : "Hola {nombre}, mensaje por defecto.";
+                            
+                            // Reemplazamos {nombre} automáticamente (sin importar si está en mayúsculas o minúsculas)
+                            let mensajeFinal = mensajePlantilla.replace(/{nombre}/gi, nombre);
 
-                        contactosData.push({ nombre, numero, mensaje, estado: 'Pendiente' });
+                            if (nombre && numero) {
+                                contactosData.push({ nombre, numero, mensaje: mensajeFinal, estado: 'Pendiente' });
+                            }
+                        }
+                    });
+
+                    if (contactosData.length === 0) {
+                        alert('No se pudieron extraer contactos. Revisa que el número de fila inicial sea correcto y que las columnas A y B tengan datos.');
+                        return;
                     }
-                });
 
-                if (contactosData.length === 0) {
-                    alert('No se encontraron datos a partir de esa fila. Revisa el número de fila ingresado.');
-                    return;
+                    renderizarLista();
+                } catch (error) {
+                    console.error(error);
+                    alert('Ocurrió un error al procesar el archivo Excel. Verifica que el formato sea correcto.');
                 }
-
-                renderizarLista();
             };
             reader.readAsArrayBuffer(input.files[0]);
         }

@@ -24,6 +24,30 @@
         }
         h1 { color: #128C7E; text-align: center; margin-top: 0; }
         
+        /* Configuración Plataforma */
+        .config-box {
+            background-color: #e1f5fe;
+            border-left: 5px solid #03a9f4;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .config-box label {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .config-box input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
         /* Panel de Estadísticas */
         .dashboard {
             display: flex;
@@ -59,13 +83,24 @@
         .note { font-size: 0.85em; color: #666; margin-bottom: 10px; }
         
         /* Botones Principales */
+        .btn-group {
+            display: flex; gap: 10px; margin-top: 20px;
+        }
         .btn-main {
             background-color: #128C7E; color: white; border: none; padding: 12px 20px;
-            font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%;
-            margin-top: 20px; font-weight: bold;
+            font-size: 16px; border-radius: 5px; cursor: pointer; flex: 2;
+            font-weight: bold; transition: 0.2s;
         }
         .btn-main:hover { background-color: #075E54; }
-        .btn-export { background-color: #f59f00; margin-top: 20px; display: none; }
+        
+        .btn-clear {
+            background-color: #dc3545; color: white; border: none; padding: 12px 20px;
+            font-size: 16px; border-radius: 5px; cursor: pointer; flex: 1;
+            font-weight: bold; transition: 0.2s;
+        }
+        .btn-clear:hover { background-color: #c82333; }
+
+        .btn-export { background-color: #f59f00; margin-top: 20px; display: none; width: 100%; font-weight: bold; border:none; padding: 12px; border-radius: 5px; color:white; cursor:pointer;}
         .btn-export:hover { background-color: #e67e22; }
 
         /* Lista de Contactos */
@@ -78,7 +113,7 @@
         .contact-card.status-Enviado { border-left-color: #25D366; background-color: #f0fff4; }
         .contact-card.status-Fallido { border-left-color: #dc3545; background-color: #fff0f0; }
         
-        .contact-info { flex: 1; }
+        .contact-info { flex: 1; padding-right: 15px; }
         .contact-info h4 { margin: 0 0 5px 0; color: #333; }
         .contact-info p { margin: 0; font-size: 0.9em; color: #666; }
         
@@ -91,7 +126,6 @@
         .btn-success { background-color: #25D366; }
         .btn-fail { background-color: #dc3545; }
         .btn-action:hover { opacity: 0.8; }
-        .btn-action:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -99,6 +133,14 @@
     <div class="container">
         <h1>📲 WhatsApp Sender Pro</h1>
         
+        <!-- Configuración de Plataforma -->
+        <div class="config-box">
+            <label>
+                <input type="checkbox" id="usar-desktop"> 
+                Activar para usar la App de Escritorio de WhatsApp (Si lo dejas vacío, usará WhatsApp Web en el navegador)
+            </label>
+        </div>
+
         <!-- Panel de Estadísticas -->
         <div class="dashboard">
             <div class="stat-box">
@@ -131,22 +173,28 @@
             <div class="note">Usa <strong>{nombre}</strong> para personalizar.</div>
             <textarea id="mensaje-manual" rows="3" placeholder="Hola {nombre}, este es un mensaje de prueba."></textarea>
             
-            <button class="btn-main" onclick="procesarManual()">Generar Lista</button>
+            <div class="btn-group">
+                <button class="btn-main" onclick="procesarManual()">Generar Lista</button>
+                <button class="btn-clear" onclick="limpiarManual()">🧹 Limpiar Todo</button>
+            </div>
         </div>
 
         <!-- Opción 2: Excel -->
         <div id="tab-excel" class="tab-content">
             <label for="archivo-excel">Sube tu archivo Excel (.xlsx):</label>
-            <div class="note">Asegúrate de que la <strong>Columna A</strong> sea el Nombre, la <strong>Columna B</strong> el Número y la <strong>Columna C</strong> el Mensaje. Sin encabezados (títulos).</div>
+            <div class="note">Asegúrate de que la <strong>Columna A</strong> sea el Nombre, la <strong>Columna B</strong> el Número y la <strong>Columna C</strong> el Mensaje. Sin encabezados.</div>
             <input type="file" id="archivo-excel" accept=".xlsx, .xls">
             
-            <button class="btn-main" onclick="procesarExcel()">Cargar Archivo</button>
+            <div class="btn-group">
+                <button class="btn-main" onclick="procesarExcel()">Cargar Archivo</button>
+                <button class="btn-clear" onclick="limpiarExcel()">🧹 Limpiar Todo</button>
+            </div>
         </div>
 
         <hr style="margin-top: 30px; border: 0; border-top: 1px solid #ddd;">
 
         <!-- Área de Resultados -->
-        <button id="btn-descargar" class="btn-main btn-export" onclick="descargarReporte()">📥 Descargar Reporte en Excel</button>
+        <button id="btn-descargar" class="btn-export" onclick="descargarReporte()">📥 Descargar Reporte en Excel</button>
         <div id="lista-botones"></div>
 
     </div>
@@ -166,7 +214,26 @@
             document.getElementById('tab-' + modo).classList.add('active');
         }
 
-        // Procesar Copiar/Pegar
+        // --- FUNCIONES PARA LIMPIAR DATOS ---
+        function limpiarManual() {
+            document.getElementById('contactos').value = '';
+            document.getElementById('mensaje-manual').value = '';
+            resetearResultados();
+        }
+
+        function limpiarExcel() {
+            document.getElementById('archivo-excel').value = '';
+            resetearResultados();
+        }
+
+        function resetearResultados() {
+            contactosData = [];
+            document.getElementById('lista-botones').innerHTML = '';
+            document.getElementById('btn-descargar').style.display = 'none';
+            actualizarEstadisticas();
+        }
+
+        // --- PROCESAMIENTO DE DATOS ---
         function procesarManual() {
             const contactosText = document.getElementById('contactos').value.trim();
             const mensajePlantilla = document.getElementById('mensaje-manual').value.trim();
@@ -180,8 +247,6 @@
 
             lineas.forEach(linea => {
                 if (linea.trim() === '') return;
-                
-                // Si el usuario copia de Excel, las columnas se separan por tabulador (\t), sino usamos coma (,)
                 let datos = linea.includes('\t') ? linea.split('\t') : linea.split(',');
                 
                 if (datos.length >= 2) {
@@ -196,7 +261,6 @@
             renderizarLista();
         }
 
-        // Procesar Archivo Excel
         function procesarExcel() {
             const input = document.getElementById('archivo-excel');
             if (!input.files[0]) {
@@ -208,21 +272,15 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // Convertir la hoja a formato de arreglo de arreglos
                 const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
                 
                 contactosData = [];
                 
                 filas.forEach(fila => {
-                    // Ignorar filas vacías
                     if (fila.length >= 2 && fila[0] && fila[1]) {
                         const nombre = String(fila[0]).trim();
                         const numero = String(fila[1]).trim().replace(/\D/g, '');
-                        // Si hay columna C (fila[2]), la usa como mensaje, si no, lo deja vacío o puedes agregar un respaldo.
-                        let mensaje = fila[2] ? String(fila[2]).trim() : "Mensaje no definido en Columna C";
-                        
-                        // Opcional: Reemplazar {nombre} si también lo usaron en la columna C
+                        let mensaje = fila[2] ? String(fila[2]).trim() : "Mensaje no definido";
                         mensaje = mensaje.replace(/{nombre}/g, nombre);
 
                         contactosData.push({ nombre, numero, mensaje, estado: 'Pendiente' });
@@ -234,7 +292,7 @@
             reader.readAsArrayBuffer(input.files[0]);
         }
 
-        // Mostrar la lista en pantalla
+        // --- RENDERIZADO Y LÓGICA DE WHATSAPP ---
         function renderizarLista() {
             const contenedor = document.getElementById('lista-botones');
             contenedor.innerHTML = '';
@@ -243,12 +301,10 @@
                 alert('No se encontraron contactos válidos.'); return;
             }
 
-            // Mostrar el botón de exportar
             document.getElementById('btn-descargar').style.display = 'block';
 
+            // Pasamos el "index" a la función abrirWhatsApp en lugar de la URL fija
             contactosData.forEach((contacto, index) => {
-                const url = `https://web.whatsapp.com/send?phone=${contacto.numero}&text=${encodeURIComponent(contacto.mensaje)}`;
-
                 const card = document.createElement('div');
                 card.className = `contact-card status-${contacto.estado}`;
                 
@@ -259,7 +315,7 @@
                         <small>Estado: <strong>${contacto.estado}</strong></small>
                     </div>
                     <div class="contact-actions">
-                        <button class="btn-action btn-send" onclick="abrirWhatsApp('${url}')">➤ Enviar</button>
+                        <button class="btn-action btn-send" onclick="abrirWhatsApp(${index})">➤ Enviar</button>
                         <button class="btn-action btn-success" onclick="marcarEstado(${index}, 'Enviado')">✅</button>
                         <button class="btn-action btn-fail" onclick="marcarEstado(${index}, 'Fallido')">❌</button>
                     </div>
@@ -270,18 +326,32 @@
             actualizarEstadisticas();
         }
 
-        // Abre WhatsApp Web (Reciclando la pestaña)
-        function abrirWhatsApp(url) {
-            window.open(url, "ventana_whatsapp");
+        function abrirWhatsApp(index) {
+            const contacto = contactosData[index];
+            const textoCodificado = encodeURIComponent(contacto.mensaje);
+            
+            // Verificamos si el checkbox de escritorio está activado en el momento del clic
+            const usarDesktop = document.getElementById('usar-desktop').checked;
+            
+            let url = "";
+            if (usarDesktop) {
+                // Protocolo para abrir la App de Escritorio directamente
+                url = `whatsapp://send?phone=${contacto.numero}&text=${textoCodificado}`;
+                // Para protocolos nativos como whatsapp://, usar _self evita pestañas en blanco infinitas
+                window.open(url, "_self");
+            } else {
+                // URL estándar para WhatsApp Web
+                url = `https://web.whatsapp.com/send?phone=${contacto.numero}&text=${textoCodificado}`;
+                // Usamos la misma pestaña reciclada
+                window.open(url, "ventana_whatsapp");
+            }
         }
 
-        // Actualiza el estado (Éxito / Fallido)
         function marcarEstado(index, nuevoEstado) {
             contactosData[index].estado = nuevoEstado;
-            renderizarLista(); // Vuelve a dibujar para actualizar colores
+            renderizarLista(); 
         }
 
-        // Actualiza los números del Dashboard
         function actualizarEstadisticas() {
             const total = contactosData.length;
             const exitosos = contactosData.filter(c => c.estado === 'Enviado').length;
@@ -292,15 +362,10 @@
             document.getElementById('stat-failed').innerText = fallidos;
         }
 
-        // Descargar los resultados en un nuevo Excel
         function descargarReporte() {
-            // Creamos una hoja de trabajo a partir de nuestros datos
             const worksheet = XLSX.utils.json_to_sheet(contactosData);
-            // Creamos un libro de Excel
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-            
-            // Generamos el archivo y lo descargamos
             XLSX.writeFile(workbook, "Reporte_Envios_WhatsApp.xlsx");
         }
     </script>

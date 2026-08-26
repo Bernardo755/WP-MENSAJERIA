@@ -140,8 +140,11 @@
         }
         .btn-clear:hover { background-color: #c82333; }
 
-        .btn-export { background-color: #f59f00; margin-top: 20px; display: none; width: 100%; font-weight: bold; border:none; padding: 12px; border-radius: 5px; color:white; cursor:pointer;}
+        .btn-export { background-color: #f59f00; margin-top: 10px; display: none; width: 100%; font-weight: bold; border:none; padding: 12px; border-radius: 5px; color:white; cursor:pointer;}
         .btn-export:hover { background-color: #e67e22; }
+
+        .btn-massive { background-color: #6f42c1; margin-top: 10px; display: none; width: 100%; font-weight: bold; border:none; padding: 12px; border-radius: 5px; color:white; cursor:pointer;}
+        .btn-massive:hover { background-color: #59339d; }
 
         /* Lista de Contactos */
         #lista-botones { margin-top: 15px; }
@@ -281,6 +284,9 @@
             </select>
         </div>
 
+        <!-- NUEVO BOTÓN: ENVÍO MASIVO DE CORREOS -->
+        <button id="btn-enviar-masivo" class="btn-massive" onclick="enviarCorreosMasivos()">🚀 Enviar Todos los Correos (Automático)</button>
+        
         <button id="btn-descargar" class="btn-export" onclick="descargarReporte()">📥 Descargar Reporte en Excel</button>
         <div id="lista-botones"></div>
 
@@ -370,6 +376,7 @@
             contactosData = [];
             document.getElementById('lista-botones').innerHTML = '';
             document.getElementById('btn-descargar').style.display = 'none';
+            document.getElementById('btn-enviar-masivo').style.display = 'none';
             document.getElementById('barra-filtro').style.display = 'none';
             actualizarEstadisticas();
         }
@@ -421,7 +428,7 @@
             });
 
             document.getElementById('barra-filtro').style.display = 'flex';
-            document.getElementById('filtro-estado').value = 'Pendiente'; // Por defecto muestra pendientes
+            document.getElementById('filtro-estado').value = 'Pendiente';
             renderizarLista();
         }
 
@@ -497,12 +504,18 @@
             contenedor.innerHTML = '';
             document.getElementById('btn-descargar').style.display = 'block';
 
+            // Mostrar el botón de envíos masivos SOLAMENTE si es correo y hay datos
+            if (canal === 'correo' && contactosData.length > 0) {
+                document.getElementById('btn-enviar-masivo').style.display = 'block';
+            } else {
+                document.getElementById('btn-enviar-masivo').style.display = 'none';
+            }
+
             let mostradosCount = 0;
 
             contactosData.forEach((contacto, index) => {
-                // Aplicar filtro de visualización
                 if (filtroSeleccionado !== 'todos' && contacto.estado !== filtroSeleccionado) {
-                    return; // Oculta este registro si no coincide con el filtro seleccionado
+                    return; 
                 }
 
                 mostradosCount++;
@@ -550,6 +563,41 @@
             actualizarEstadisticas();
         }
 
+        // ==========================================
+        // NUEVA FUNCIÓN: ENVIAR CORREOS MASIVAMENTE
+        // ==========================================
+        function enviarCorreosMasivos() {
+            const pendientes = contactosData.map((c, index) => ({...c, index})).filter(c => c.estado === 'Pendiente');
+
+            if (pendientes.length === 0) {
+                alert("No hay correos pendientes para enviar.");
+                return;
+            }
+
+            const mensajeWarning = `Estás a punto de abrir ${pendientes.length} ventanas de correo automáticamente.\n\n⚠️ IMPORTANTE: Si usas Gmail Web, tu navegador bloqueará las pestañas (pop-ups). Por favor, asegúrate de Permitir Ventanas Emergentes para esta página en la barra de direcciones de tu navegador.\n\n¿Deseas continuar?`;
+            
+            if (!confirm(mensajeWarning)) return;
+
+            let i = 0;
+            // Usamos un intervalo de 1.5 segundos para no saturar la memoria del navegador de golpe
+            const intervalo = setInterval(() => {
+                if (i >= pendientes.length) {
+                    clearInterval(intervalo);
+                    alert("Se ha procesado toda la lista de correos.");
+                    return;
+                }
+
+                // Ejecutar el envío (abre la ventana)
+                const contactoOriginalIndex = pendientes[i].index;
+                ejecutarEnvio(contactoOriginalIndex, null);
+
+                // Opcional: Marcarlo como enviado automáticamente
+                // marcarEstado(contactoOriginalIndex, 'Enviado'); 
+                
+                i++;
+            }, 1500); 
+        }
+
         function copiarTextoEspecifico(index, tipo, botonElemento) {
             const contacto = contactosData[index];
             const textoACopiar = tipo === 'mensaje' ? contacto.mensaje : contacto.destino;
@@ -584,23 +632,25 @@
                 const asuntoCodificado = encodeURIComponent(contacto.asunto || "Mensaje");
                 if (usarDesktop) {
                     url = `mailto:${contacto.destino}?subject=${asuntoCodificado}&body=${textoCodificado}`;
-                    window.open(url, "_self");
+                    window.open(url, "_blank"); // Cambiado a blank para masivos
                 } else {
                     url = `https://mail.google.com/mail/?view=cm&fs=1&to=${contacto.destino}&su=${asuntoCodificado}&body=${textoCodificado}`;
-                    window.open(url, "ventana_envio");
+                    window.open(url, "_blank"); // Abre en pestaña nueva
                 }
             } else if (canal === 'sms') {
                 let textoACopiar = contacto.mensaje;
 
                 navigator.clipboard.writeText(textoACopiar).then(() => {
-                    const textoOriginal = botonElemento.innerHTML;
-                    botonElemento.innerHTML = "✅ ¡Copiado!";
-                    botonElemento.style.backgroundColor = "#28a745";
-                    
-                    setTimeout(() => {
-                        botonElemento.innerHTML = textoOriginal;
-                        botonElemento.style.backgroundColor = "";
-                    }, 2000);
+                    if (botonElemento) {
+                        const textoOriginal = botonElemento.innerHTML;
+                        botonElemento.innerHTML = "✅ ¡Copiado!";
+                        botonElemento.style.backgroundColor = "#28a745";
+                        
+                        setTimeout(() => {
+                            botonElemento.innerHTML = textoOriginal;
+                            botonElemento.style.backgroundColor = "";
+                        }, 2000);
+                    }
 
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     if (isMobile) {
@@ -618,7 +668,7 @@
 
         function marcarEstado(index, nuevoEstado) {
             contactosData[index].estado = nuevoEstado;
-            renderizarLista(); // Al actualizar estado, como el filtro por defecto es "Pendiente", desaparecerá de la vista automáticamente
+            renderizarLista(); 
         }
 
         function actualizarEstadisticas() {
